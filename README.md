@@ -1,0 +1,3 @@
+# Scriky
+
+Cybersecurity awareness month
