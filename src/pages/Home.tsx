@@ -63,13 +63,13 @@ const Home = () => {
     const emailInput = prompt('Enter your email address:');
     
     if (!emailInput || !emailInput.includes('@')) {
-     alert('Please enter a valid email address');
-     return;
+      alert('Please enter a valid email address');
+      return;
     }
     
     const handler = window.PaystackPop.setup({
       key: 'pk_live_82ed5d1d068c5eb4dc3aedf9e7a93ac25afefe11',
-     email: emailInput.trim(),
+      email: emailInput.trim(),
       amount: Math.round(amount * 100), // Convert to cents
       currency: 'KES',
       ref: 'scriky_' + Math.floor((Math.random() * 1000000000) + 1),
@@ -177,10 +177,10 @@ const Home = () => {
               Join our community of security-conscious users. Create an account to track your progress and bookmark your favorite tips.
             </p>
             <Button size="lg" asChild>
-              <Link to="/">Coming Soon</Link>
+              <Link to="/auth">Get Started Free</Link>
             </Button>
           </div>
-        </section>*
+        </section>
       </main>
 
       <Footer />
