@@ -84,7 +84,7 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created successfully!");
+      toast.success("Account created successfully, please check you email to confirm!");
     }
     
     setIsLoading(false);
