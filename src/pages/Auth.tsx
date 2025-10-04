@@ -1,36 +1,93 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        if (session) {
+          navigate("/");
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        navigate("/");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Placeholder for authentication logic
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Login functionality will be enabled with Lovable Cloud");
-    }, 1000);
+    const formData = new FormData(e.target as HTMLFormElement);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Successfully logged in!");
+    }
+    
+    setIsLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Placeholder for authentication logic
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Signup functionality will be enabled with Lovable Cloud");
-    }, 1000);
+    const formData = new FormData(e.target as HTMLFormElement);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const redirectUrl = `${window.location.origin}/`;
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: name,
+        }
+      }
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Account created successfully!");
+    }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -66,6 +123,7 @@ const Auth = () => {
                     <Label htmlFor="login-email">Email</Label>
                     <Input
                       id="login-email"
+                      name="email"
                       type="email"
                       placeholder="you@example.com"
                       required
@@ -75,6 +133,7 @@ const Auth = () => {
                     <Label htmlFor="login-password">Password</Label>
                     <Input
                       id="login-password"
+                      name="password"
                       type="password"
                       placeholder="••••••••"
                       required
@@ -92,6 +151,7 @@ const Auth = () => {
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input
                       id="signup-name"
+                      name="name"
                       type="text"
                       placeholder="John Doe"
                       required
@@ -101,6 +161,7 @@ const Auth = () => {
                     <Label htmlFor="signup-email">Email</Label>
                     <Input
                       id="signup-email"
+                      name="email"
                       type="email"
                       placeholder="you@example.com"
                       required
@@ -110,9 +171,11 @@ const Auth = () => {
                     <Label htmlFor="signup-password">Password</Label>
                     <Input
                       id="signup-password"
+                      name="password"
                       type="password"
                       placeholder="••••••••"
                       required
+                      minLength={6}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
