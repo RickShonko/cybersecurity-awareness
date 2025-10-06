@@ -10,21 +10,44 @@ const Navbar = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        if (session?.user) {
+          checkAdminStatus(session.user.id);
+        } else {
+          setIsAdmin(false);
+        }
+      }
+    );
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      if (session?.user) {
+        checkAdminStatus(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  const checkAdminStatus = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    setIsAdmin(!!data);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setIsAdmin(false);
     toast.success("Logged out successfully");
   };
 
@@ -60,9 +83,19 @@ const Navbar = () => {
                   isActive(link.path) ? "text-primary" : "text-muted-foreground"
                 }`}
               >
-            {link.name}
+                {link.name}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  isActive("/admin") ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                Admin
+              </Link>
+            )}
             {session ? (
               <Button variant="default" size="sm" onClick={handleLogout}>
                 Logout
@@ -99,6 +132,17 @@ const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`text-sm font-medium transition-colors hover:text-primary ${
+                    isActive("/admin") ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  Admin
+                </Link>
+              )}
               {session ? (
                 <Button variant="default" size="sm" onClick={() => {
                   handleLogout();

@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import TipCard from "@/components/TipCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
@@ -12,38 +13,45 @@ declare global {
   }
 }
 
-// Mock data - will be replaced with API calls after Lovable Cloud is enabled
-const mockTips = [
-  {
-    id: 1,
-    title: "Enable Two-Factor Authentication Everywhere",
-    content:
-      "Two-factor authentication (2FA) adds an extra layer of security to your accounts. Even if someone gets your password, they won't be able to access your account without the second factor. Use authenticator apps like Google Authenticator or Authy for the most secure 2FA method.",
-    datePosted: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    title: "Use a Password Manager",
-    content:
-      "Password managers generate and store complex, unique passwords for all your accounts. This means you only need to remember one master password. Popular options include 1Password, Bitwarden, and LastPass.",
-    datePosted: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 3,
-    title: "Keep Your Software Updated",
-    content:
-      "Software updates often include security patches for vulnerabilities. Enable automatic updates whenever possible, especially for your operating system, browser, and antivirus software.",
-    datePosted: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
+interface Tip {
+  id: string;
+  title: string;
+  content: string;
+  date_posted: string;
+}
 
 const Home = () => {
-  const [todaysTip, setTodaysTip] = useState(mockTips[0]);
-  const [randomTip, setRandomTip] = useState(mockTips[1]);
+  const [todaysTip, setTodaysTip] = useState<Tip | null>(null);
+  const [randomTip, setRandomTip] = useState<Tip | null>(null);
+  const [allTips, setAllTips] = useState<Tip[]>([]);
+
+  useEffect(() => {
+    fetchTips();
+  }, []);
+
+  const fetchTips = async () => {
+    const { data, error } = await supabase
+      .from("tips")
+      .select("*")
+      .order("date_posted", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching tips:", error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      setAllTips(data);
+      setTodaysTip(data[0]);
+      setRandomTip(data[Math.floor(Math.random() * data.length)]);
+    }
+  };
 
   const getRandomTip = () => {
-    const randomIndex = Math.floor(Math.random() * mockTips.length);
-    setRandomTip(mockTips[randomIndex]);
+    if (allTips.length > 0) {
+      const randomIndex = Math.floor(Math.random() * allTips.length);
+      setRandomTip(allTips[randomIndex]);
+    }
   };
 
   const handleDonation = () => {
@@ -126,12 +134,16 @@ const Home = () => {
             <span className="bg-gradient-primary bg-clip-text text-transparent">Today's Tip</span>
           </h2>
           <div className="max-w-3xl animate-slide-in">
-            <TipCard
-              title={todaysTip.title}
-              content={todaysTip.content}
-              datePosted={todaysTip.datePosted}
-              featured
-            />
+            {todaysTip ? (
+              <TipCard
+                title={todaysTip.title}
+                content={todaysTip.content}
+                datePosted={todaysTip.date_posted}
+                featured
+              />
+            ) : (
+              <p className="text-muted-foreground">Loading today's tip...</p>
+            )}
           </div>
         </section>
 
@@ -141,16 +153,20 @@ const Home = () => {
             <h2 className="text-3xl font-bold">
               <span className="bg-gradient-primary bg-clip-text text-transparent">Random Tip</span>
             </h2>
-            <Button variant="outline" size="sm" onClick={getRandomTip}>
+            <Button variant="outline" size="sm" onClick={getRandomTip} disabled={!randomTip}>
               <Shuffle className="h-4 w-4" />
             </Button>
           </div>
           <div className="max-w-3xl">
-            <TipCard
-              title={randomTip.title}
-              content={randomTip.content}
-              datePosted={randomTip.datePosted}
-            />
+            {randomTip ? (
+              <TipCard
+                title={randomTip.title}
+                content={randomTip.content}
+                datePosted={randomTip.date_posted}
+              />
+            ) : (
+              <p className="text-muted-foreground">Loading random tip...</p>
+            )}
           </div>
         </section>
 
